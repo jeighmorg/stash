@@ -5,6 +5,7 @@ class StashApp {
     this.user = { id: CONFIG.USER_ID }; // Hardcoded single user
     this.currentView = 'all';
     this.currentSave = null;
+    this.currentFolderId = null;
     this.saves = [];
     this.tags = [];
     this.folders = [];
@@ -122,6 +123,11 @@ class StashApp {
 
     document.getElementById('add-tag-btn').addEventListener('click', () => {
       this.addTagToSave();
+    });
+
+    // Folder select
+    document.getElementById('folder-select').addEventListener('change', (e) => {
+      this.moveToFolder(e.target.value || null);
     });
 
     // Mobile menu
@@ -373,6 +379,8 @@ class StashApp {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       query = query.gte('created_at', weekAgo.toISOString());
+    } else if (this.currentView === 'folder' && this.currentFolderId) {
+      query = query.eq('folder_id', this.currentFolderId);
     } else {
       query = query.eq('is_archived', false);
     }
@@ -647,6 +655,33 @@ class StashApp {
         ${this.escapeHtml(folder.name)}
       </a>
     `).join('');
+
+    // Add click handlers for folder filtering
+    container.querySelectorAll('.nav-item[data-folder]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const folderId = el.dataset.folder;
+        this.setFolderView(folderId);
+      });
+    });
+  }
+
+  setFolderView(folderId) {
+    this.currentView = 'folder';
+    this.currentFolderId = folderId;
+
+    // Update nav - remove active from all, add to this folder
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    const folderEl = document.querySelector(`.nav-item[data-folder="${folderId}"]`);
+    if (folderEl) folderEl.classList.add('active');
+
+    // Update title
+    const folder = this.folders.find(f => f.id === folderId);
+    document.getElementById('view-title').textContent = folder ? folder.name : 'Folder';
+
+    this.loadSaves();
   }
 
   setView(view) {
@@ -740,6 +775,12 @@ class StashApp {
     // Update button states
     document.getElementById('archive-btn').classList.toggle('active', save.is_archived);
     document.getElementById('favorite-btn').classList.toggle('active', save.is_favorite);
+
+    // Populate folder dropdown
+    const folderSelect = document.getElementById('folder-select');
+    folderSelect.innerHTML = '<option value="">No folder</option>' +
+      this.folders.map(f => `<option value="${f.id}">${this.escapeHtml(f.name)}</option>`).join('');
+    folderSelect.value = save.folder_id || '';
 
     pane.classList.remove('hidden');
     // Add open class for mobile slide-in animation
@@ -920,6 +961,23 @@ class StashApp {
 
     this.closeReadingPane();
     this.loadSaves();
+  }
+
+  async moveToFolder(folderId) {
+    if (!this.currentSave) return;
+
+    try {
+      await this.supabase
+        .from('saves')
+        .update({ folder_id: folderId })
+        .eq('id', this.currentSave.id);
+
+      this.currentSave.folder_id = folderId;
+      this.loadSaves();
+    } catch (error) {
+      console.error('Error moving to folder:', error);
+      alert('Failed to move to folder');
+    }
   }
 
   async addTagToSave() {

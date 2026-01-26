@@ -51,8 +51,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // Save highlighted text
 async function saveHighlight(tab, selectionText) {
   try {
+    const user = await supabase.getUser();
+    // Use hardcoded USER_ID for single-user mode if not signed in
+    const userId = user?.id || CONFIG.USER_ID;
+    if (!userId) throw new Error('Not signed in and no USER_ID configured');
+
     await supabase.insert('saves', {
-      user_id: CONFIG.USER_ID,
+      user_id: userId,
       url: tab.url,
       title: tab.title,
       highlight: selectionText,
@@ -104,8 +109,13 @@ async function savePage(tab) {
     }
 
     console.log('Inserting into Supabase...');
+    const user = await supabase.getUser();
+    // Use hardcoded USER_ID for single-user mode if not signed in
+    const userId = user?.id || CONFIG.USER_ID;
+    if (!userId) throw new Error('Not signed in and no USER_ID configured');
+
     const result = await supabase.insert('saves', {
-      user_id: CONFIG.USER_ID,
+      user_id: userId,
       url: tab.url,
       title: article.title,
       content: article.content,

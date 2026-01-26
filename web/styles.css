@@ -473,6 +473,28 @@ input, select {
   color: var(--text-secondary);
 }
 
+/* Folder Select in Reading Pane */
+.folder-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.folder-select:hover {
+  border-color: var(--primary);
+}
+
+.folder-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
 /* Saves Grid */
 .saves-grid {
   display: grid;
